@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>SignalR Client - Send Full Payload</title>
+</head>
+<body>
+  <h1>SignalR Client - Send Notification Payload</h1>
+ 
+  <button onclick="sendPayload()">Send Notification Payload</button>
+ 
+  <h3>Received Notifications:</h3>
+  <ul id="notificationsList"></ul>
+ 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
+  <script>
+    const connection = new signalR.HubConnectionBuilder()
+      .withUrl("https://localhost:43443/OcsHub") // Replace with your hub URL
+      .configureLogging(signalR.LogLevel.Information)
+      .build();
+ 
+    connection.on("SendToWorkstation", (officeCommand, emptyString, payload) => {
+      const message = payload?.commandPayload?.message || "No message content";
+      const li = document.createElement("li");
+      li.textContent = `Notification received: ${message}`;
+      document.getElementById("notificationsList").appendChild(li);
+    });
+ 
+    connection.start()
+      .then(() => console.log("Connected to SignalR server"))
+      .catch(err => console.error(err));
+ 
+    function sendPayload() {
+      // The exact payload object from your message, which is the 3rd argument in "arguments" array
+      const payload = {
+        status: "",
+        command: "notification",
+        commandPayload: {
+          message: "John Doe has Checked In. Please assist client.",
+          ampUrl: "https://amp.hrblock.com/s/",
+          action: "yes",
+          duration: 5,
+          header: "H&R Block",
+          appIconUrl: "",
+          appHeaderUrl: ""
+        },
+        connectionId: "",
+        userId: "",
+        isGlobalRequest: false,
+        retryCount: 0,
+        detail: {
+          TimeStamp: 1754639860777
+        },
+        jobId: "6556692e-b1af-4dcc-8b3d-67801a6bc671",
+        upn: "",
+        participantname: "WC",
+        ConnectionId: "KwJQPuh_VkL2g6E0p9-euw"
+      };
+ 
+      // Invoke the server method 'SendToWorkstation' with the same argument structure
+      connection.invoke("SendToWorkstation", "OfficeCommand", "", payload)
+        .then(() => console.log("Payload sent successfully"))
+        .catch(err => console.error("Error sending payload:", err));
+    }
+  </script>
+</body>
+</html>
